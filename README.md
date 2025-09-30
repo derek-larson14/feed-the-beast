@@ -10,7 +10,7 @@ Drop this folder on your computer. Replace the placeholder content. Run commands
 - `/outreach` - Draft outreach messages
 - `/push` - Auto-commit and push changes
 
-From ["Feed the Beast: Claude Code eats software"](https://dtlarson.com/feed-the-beast).
+From ["Feed the Beast: AI eats software"](https://dtlarson.com/feed-the-beast).
 
 ## Setup
 
@@ -88,6 +88,6 @@ feed-the-beast/
 
 ---
 
-By Derek Larson. From ["Feed the Beast: Claude Code eats software"](https://dtlarson.com/feed-the-beast).
+By Derek Larson. From ["Feed the Beast: AI eats software"](https://dtlarson.com/feed-the-beast).
 
 MIT License.
