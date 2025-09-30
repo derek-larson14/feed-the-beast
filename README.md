@@ -10,7 +10,7 @@ Drop this folder on your computer. Replace the placeholder content. Run commands
 - `/outreach` - Draft outreach messages
 - `/push` - Auto-commit and push changes
 
-From ["Feed the Beast: Claude Code eats software"](link).
+From ["Feed the Beast: Claude Code eats software"](https://dtlarson.com/feed-the-beast).
 
 ## Setup
 
@@ -82,12 +82,12 @@ feed-the-beast/
 
 ## For Developers
 
-- **MCP Integration**: Hook up LinkedIn, calendar, email to auto-update network.md. See [MCP docs](https://modelcontextprotocol.io/).
-- **Automate**: Schedule commands, chain workflows, pull from APIs
+- **MCP Integration**: Hook up calendar, Slack, email, Notion, etc. See [MCP docs](https://docs.claude.com/en/docs/claude-code/mcp).
+- **Automate**: [Schedule commands](https://docs.anthropic.com/en/docs/claude-code/github-actions), chain workflows, pull from APIs
 - **Extend**: This is just text files and prompts. Build whatever you need.
 
 ---
 
-By Derek Larson. From ["Feed the Beast: Claude Code eats software"](link).
+By Derek Larson. From ["Feed the Beast: Claude Code eats software"](https://dtlarson.com/feed-the-beast).
 
 MIT License.
