@@ -1,0 +1,7 @@
+# Daily Review Logs
+
+The `/daily` command can optionally create logs here.
+
+Each daily review could create a file like: `2025-01-15.md`
+
+This helps track day-to-day decisions and progress over time.

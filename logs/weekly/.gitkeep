@@ -1,0 +1,7 @@
+# Weekly Review Logs
+
+The `/weekly` command will create logs here.
+
+Each weekly review creates a file like: `2025-01.md`, `2025-02.md`, etc.
+
+These logs help track your evolution over time.
