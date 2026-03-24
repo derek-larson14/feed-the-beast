@@ -65,7 +65,7 @@ VOICE_TIME_AFTER=$(stat -f "%m" voice.md 2>/dev/null || echo "0")
 
 if [ "$VOICE_TIME_BEFORE" = "$VOICE_TIME_AFTER" ]; then
     # voice.md wasn't modified — check if there were routable entries
-    ROUTABLE=$(grep -cE "^## (Dispatch|Vault|Memo) " voice.md 2>/dev/null || echo "0")
+    ROUTABLE=$(grep -cE "^## (Pigeon|Vault|Memo) " voice.md 2>/dev/null || echo "0")
     if [ "$ROUTABLE" -eq 0 ]; then
         # Only needs-context or unroutable entries — nothing for headless Claude to do
         echo "Only needs-context entries, skipping"

@@ -1,12 +1,12 @@
 ---
-description: Set up automatic transcription — iPhone Voice Memos or Google Drive (Dispatch)
+description: Set up automatic transcription — iPhone Voice Memos or Google Drive (Pigeon)
 model: sonnet
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
 # Voice Transcription
 
-Transcribe voice recordings and add them to voice.md. Supports two sources: iPhone Voice Memos (via iCloud, Mac only) and Google Drive (via Dispatch app, all platforms).
+Transcribe voice recordings and add them to voice.md. Supports two sources: iPhone Voice Memos (via iCloud, Mac only) and Google Drive (via Pigeon app, all platforms).
 
 ## Step 0: Detect OS
 
@@ -19,7 +19,7 @@ If the output contains "MINGW", "CYGWIN", "MSYS", or "Windows", this is a **Wind
 - Auto-set source to "drive" (skip the source question)
 - Use PowerShell scripts (.ps1) instead of bash (.sh)
 - Use Task Scheduler instead of launchd
-- No local `hear` transcription — uses companion `.md` transcripts from Apps Script or Dispatch on-device
+- No local `hear` transcription — uses companion `.md` transcripts from Apps Script or Pigeon on-device
 
 ## Step 1: Determine source
 
@@ -32,7 +32,7 @@ mkdir -p .voice && ([ -f .voice/source ] && cat .voice/source || echo "NOT_SET")
 ```bash
 mkdir -p .voice && echo "drive" > .voice/source
 ```
-Tell user: "On Windows, voice transcription uses Google Drive (Dispatch app). Voice Memos is Mac-only."
+Tell user: "On Windows, voice transcription uses Google Drive (Pigeon app). Voice Memos is Mac-only."
 
 **If macOS and "NOT_SET"**, use AskUserQuestion:
 
@@ -40,18 +40,18 @@ Tell user: "On Windows, voice transcription uses Google Drive (Dispatch app). Vo
 
 Options:
 - "Voice Memos (iPhone → iCloud → Mac)"
-- "Google Drive (Dispatch app)"
+- "Google Drive (Pigeon app)"
 - "Local folder (iCloud Drive, Dropbox, or any folder path)"
 - "Mac Shortcut (record directly on your Mac)"
 
 **If "Mac Shortcut"**, share this link and set up the folder:
 
-Tell the user: "Install the Dispatch Shortcut: https://www.icloud.com/shortcuts/22e8e56866aa48b59a84fccd19c9f013 — it records audio, transcribes on-device, and saves a transcript. On first run, pick your transcripts folder (default: ~/dispatch/transcripts/)."
+Tell the user: "Install the Pigeon Shortcut: https://www.icloud.com/shortcuts/c323898b57ec44689d670aa5775b0761 — it records audio, transcribes on-device, and saves a transcript. On first run, pick your transcripts folder (default: ~/pigeon/transcripts/)."
 
 ```bash
-mkdir -p ~/dispatch/transcripts
+mkdir -p ~/pigeon/transcripts
 echo "mac" > .voice/source
-echo "$HOME/dispatch/transcripts" > .voice/local-path
+echo "$HOME/pigeon/transcripts" > .voice/local-path
 ```
 
 Then skip to the auto-routing section — no scheduled transcription needed since the Shortcut handles it on demand.
@@ -428,15 +428,15 @@ Tell user:
 
 ---
 
-## Source: Google Drive (Dispatch)
+## Source: Google Drive (Pigeon)
 
 **macOS/Linux:**
 
-Run the dispatch transcription script:
+Run the pigeon transcription script:
 
 ```bash
-chmod +x ops/scripts/scheduled/dispatch-transcribe.sh
-./ops/scripts/scheduled/dispatch-transcribe.sh
+chmod +x ops/scripts/scheduled/pigeon-transcribe.sh
+./ops/scripts/scheduled/pigeon-transcribe.sh
 ```
 
 This script pulls `.m4a` recordings from Google Drive via rclone, along with companion `.md` transcript files (one per recording, created on-device or by Apps Script). If a companion transcript exists, it uses that; otherwise it falls back to local transcription with `hear`.
@@ -444,7 +444,7 @@ This script pulls `.m4a` recordings from Google Drive via rclone, along with com
 If it reports errors about rclone not being configured, help the user set it up:
 ```bash
 # Install rclone and configure Drive
-bash ops/scripts/setup-dispatch.sh
+bash ops/scripts/setup-pigeon.sh
 ```
 
 Or just connect Drive manually:
@@ -454,32 +454,32 @@ rclone config create gdrive drive
 
 **Windows:**
 
-Run the PowerShell dispatch transcription script:
+Run the PowerShell pigeon transcription script:
 
 ```bash
-powershell.exe -ExecutionPolicy Bypass -File ops/scripts/scheduled/dispatch-transcribe.ps1
+powershell.exe -ExecutionPolicy Bypass -File ops/scripts/scheduled/pigeon-transcribe.ps1
 ```
 
 This pulls `.m4a` recordings from Google Drive along with companion `.md` transcript files. On Windows, files without a companion `.md` transcript are skipped (no local `hear` tool). To get transcripts, set up one of:
-- **Apps Script (Gemini)**: delegatewithclaude.com/voice — cloud transcription, creates companion `.md` files in gdrive:dispatch
-- **Dispatch app on-device**: dispatch.newyorkai.org — transcribes on phone, uploads `.md` alongside audio
+- **Apps Script (Gemini)**: delegatewithclaude.com/voice — cloud transcription, creates companion `.md` files in gdrive:pigeon
+- **Pigeon app on-device**: pigeon.newyorkai.org — transcribes on phone, uploads `.md` alongside audio
 
 If rclone not configured:
 ```bash
-powershell.exe -ExecutionPolicy Bypass -File ops/scripts/setup-dispatch.ps1
+powershell.exe -ExecutionPolicy Bypass -File ops/scripts/setup-pigeon.ps1
 ```
 
 After the script runs, tell user how many new entries were added and remind them: "Run /voice to route these notes to the right places."
 
-### Scheduled Dispatch Transcription (every 10 minutes)
+### Scheduled Pigeon Transcription (every 10 minutes)
 
 Check if already set up or declined:
 
 **macOS/Linux:**
 ```bash
-if launchctl list 2>/dev/null | grep -q "com.dispatch.transcribe"; then
+if launchctl list 2>/dev/null | grep -q "com.pigeon.transcribe"; then
     echo "SCHEDULED"
-elif [ -f .voice/no-dispatch-schedule ]; then
+elif [ -f .voice/no-pigeon-schedule ]; then
     echo "DECLINED"
 else
     echo "NOT_SCHEDULED"
@@ -488,7 +488,7 @@ fi
 
 **Windows:**
 ```bash
-powershell.exe -Command "if (Get-ScheduledTask -TaskName 'DispatchTranscribe' -ErrorAction SilentlyContinue) { 'SCHEDULED' } elseif (Test-Path '.voice/no-dispatch-schedule') { 'DECLINED' } else { 'NOT_SCHEDULED' }"
+powershell.exe -Command "if (Get-ScheduledTask -TaskName 'PigeonTranscribe' -ErrorAction SilentlyContinue) { 'SCHEDULED' } elseif (Test-Path '.voice/no-pigeon-schedule') { 'DECLINED' } else { 'NOT_SCHEDULED' }"
 ```
 
 **If "SCHEDULED" or "DECLINED"**, skip to Auto-Routing.
@@ -505,17 +505,17 @@ Options: "Yes, set it up" / "No, I'll run manually"
 
 ```bash
 VAULT_PATH="$(pwd)"
-cat > ~/Library/LaunchAgents/com.dispatch.transcribe.plist << EOF
+cat > ~/Library/LaunchAgents/com.pigeon.transcribe.plist << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.dispatch.transcribe</string>
+    <string>com.pigeon.transcribe</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>${VAULT_PATH}/ops/scripts/scheduled/dispatch-transcribe.sh</string>
+        <string>${VAULT_PATH}/ops/scripts/scheduled/pigeon-transcribe.sh</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -529,9 +529,9 @@ cat > ~/Library/LaunchAgents/com.dispatch.transcribe.plist << EOF
         <dict><key>Minute</key><integer>50</integer></dict>
     </array>
     <key>StandardOutPath</key>
-    <string>/tmp/dispatch-transcribe.out</string>
+    <string>/tmp/pigeon-transcribe.out</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/dispatch-transcribe.err</string>
+    <string>/tmp/pigeon-transcribe.err</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
@@ -546,31 +546,31 @@ EOF
 
 Make the script executable and load:
 ```bash
-chmod +x "$VAULT_PATH/ops/scripts/scheduled/dispatch-transcribe.sh"
-launchctl load ~/Library/LaunchAgents/com.dispatch.transcribe.plist
+chmod +x "$VAULT_PATH/ops/scripts/scheduled/pigeon-transcribe.sh"
+launchctl load ~/Library/LaunchAgents/com.pigeon.transcribe.plist
 ```
 
-Tell user: "Dispatch transcription is set up. It checks Google Drive every 10 minutes (7am–midnight). Check logs at `/tmp/dispatch-transcribe.out`."
+Tell user: "Pigeon transcription is set up. It checks Google Drive every 10 minutes (7am–midnight). Check logs at `/tmp/pigeon-transcribe.out`."
 
 **Windows** — create a scheduled task:
 
 ```bash
 powershell.exe -ExecutionPolicy Bypass -Command "
-\$scriptPath = Join-Path (Get-Location) 'ops/scripts/scheduled/dispatch-transcribe.ps1'
-\$existing = Get-ScheduledTask -TaskName 'DispatchTranscribe' -ErrorAction SilentlyContinue
-if (\$existing) { Unregister-ScheduledTask -TaskName 'DispatchTranscribe' -Confirm:\$false }
+\$scriptPath = Join-Path (Get-Location) 'ops/scripts/scheduled/pigeon-transcribe.ps1'
+\$existing = Get-ScheduledTask -TaskName 'PigeonTranscribe' -ErrorAction SilentlyContinue
+if (\$existing) { Unregister-ScheduledTask -TaskName 'PigeonTranscribe' -Confirm:\$false }
 \$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument \`\"-ExecutionPolicy Bypass -NoProfile -File \`\"\$scriptPath\`\"\`\"
 \$trigger = New-ScheduledTaskTrigger -Once -At '07:00AM' -RepetitionInterval (New-TimeSpan -Minutes 10) -RepetitionDuration (New-TimeSpan -Hours 17)
 \$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-Register-ScheduledTask -TaskName 'DispatchTranscribe' -Action \$action -Trigger \$trigger -Settings \$settings -Description 'Dispatch transcription (checks Drive every 10min, 7am-midnight)'
+Register-ScheduledTask -TaskName 'PigeonTranscribe' -Action \$action -Trigger \$trigger -Settings \$settings -Description 'Pigeon transcription (checks Drive every 10min, 7am-midnight)'
 "
 ```
 
-Tell user: "Dispatch transcription is set up. It checks Google Drive every 10 minutes (7am–midnight). Check Task Scheduler for 'DispatchTranscribe'."
+Tell user: "Pigeon transcription is set up. It checks Google Drive every 10 minutes (7am–midnight). Check Task Scheduler for 'PigeonTranscribe'."
 
 **If they say no**:
 ```bash
-touch .voice/no-dispatch-schedule
+touch .voice/no-pigeon-schedule
 ```
 
 ---
@@ -793,7 +793,7 @@ touch .voice/no-auto-route
 
 To check status:
 ```bash
-launchctl list | grep -E "voicememos|voice-auto|dispatch"
+launchctl list | grep -E "voicememos|voice-auto|pigeon"
 ```
 
 To view logs:
@@ -822,12 +822,12 @@ launchctl load ~/Library/LaunchAgents/com.claude.voice-auto.plist
 
 To check status:
 ```bash
-powershell.exe -Command "Get-ScheduledTask -TaskName 'DispatchTranscribe','VoiceAutoRoute' -ErrorAction SilentlyContinue | Format-Table TaskName,State"
+powershell.exe -Command "Get-ScheduledTask -TaskName 'PigeonTranscribe','VoiceAutoRoute' -ErrorAction SilentlyContinue | Format-Table TaskName,State"
 ```
 
 To disable transcription:
 ```bash
-powershell.exe -Command "Unregister-ScheduledTask -TaskName 'DispatchTranscribe' -Confirm:`$false"
+powershell.exe -Command "Unregister-ScheduledTask -TaskName 'PigeonTranscribe' -Confirm:`$false"
 ```
 
 To disable auto-routing:
@@ -849,9 +849,9 @@ To re-process all voice memos:
 rm .voice/memos-processed
 ```
 
-To re-process all dispatch recordings:
+To re-process all pigeon recordings:
 ```bash
-rm .voice/dispatch-processed .voice/dispatch-downloaded
+rm .voice/pigeon-processed .voice/pigeon-downloaded
 ```
 
 To change source:

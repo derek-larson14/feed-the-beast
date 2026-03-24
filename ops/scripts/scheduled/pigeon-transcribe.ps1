@@ -1,10 +1,10 @@
 #Requires -Version 5.1
-# Dispatch Transcription (Windows)
+# Pigeon Transcription (Windows)
 # Pulls recordings from Google Drive, appends transcripts to voice.md
-# Uses companion .md transcript files (from Apps Script or Dispatch on-device transcription)
+# Uses companion .md transcript files (from Apps Script or Pigeon on-device transcription)
 # No local transcription fallback on Windows — files without companion .md are skipped
-# Runs on a schedule via Task Scheduler — set up by setup-dispatch.ps1
-# Config at $env:USERPROFILE\.dispatch\config (workspace path)
+# Runs on a schedule via Task Scheduler — set up by setup-pigeon.ps1
+# Config at $env:USERPROFILE\.pigeon\config (workspace path)
 
 # Time guard: only run 7am–midnight (skip overnight if scheduled 24/7)
 $hour = (Get-Date).Hour
@@ -12,15 +12,15 @@ if ($hour -lt 7) { exit 0 }
 
 $ErrorActionPreference = "Stop"
 
-$ConfigFile = Join-Path $env:USERPROFILE ".dispatch\config"
-$DispatchDir = Join-Path $env:USERPROFILE "Sync\dispatch"
-$DriveAudio = "gdrive:dispatch/audio"
-$DriveTranscripts = "gdrive:dispatch/transcripts"
+$ConfigFile = Join-Path $env:USERPROFILE ".pigeon\config"
+$PigeonDir = Join-Path $env:USERPROFILE "Sync\pigeon"
+$DriveAudio = "gdrive:pigeon/audio"
+$DriveTranscripts = "gdrive:pigeon/transcripts"
 
 # Load workspace path from config
 if (-not (Test-Path $ConfigFile)) {
     Write-Host "Error: no config at $ConfigFile"
-    Write-Host "Run setup-dispatch.ps1 first"
+    Write-Host "Run setup-pigeon.ps1 first"
     exit 1
 }
 
@@ -39,8 +39,8 @@ if ([string]::IsNullOrWhiteSpace($Workspace) -or -not (Test-Path $Workspace)) {
 }
 
 $VoiceDir = Join-Path $Workspace ".voice"
-$DownloadedFile = Join-Path $VoiceDir "dispatch-downloaded"
-$ProcessedFile = Join-Path $VoiceDir "dispatch-processed"
+$DownloadedFile = Join-Path $VoiceDir "pigeon-downloaded"
+$ProcessedFile = Join-Path $VoiceDir "pigeon-processed"
 $VoiceMd = Join-Path $Workspace "voice.md"
 
 New-Item -ItemType Directory -Path $VoiceDir -Force | Out-Null
@@ -58,7 +58,7 @@ if (-not $RclonePath) {
     }
 }
 
-New-Item -ItemType Directory -Path $DispatchDir -Force | Out-Null
+New-Item -ItemType Directory -Path $PigeonDir -Force | Out-Null
 if (-not (Test-Path $DownloadedFile)) { New-Item -ItemType File -Path $DownloadedFile -Force | Out-Null }
 if (-not (Test-Path $ProcessedFile)) { New-Item -ItemType File -Path $ProcessedFile -Force | Out-Null }
 
@@ -77,11 +77,11 @@ if ($RclonePath) {
             if ($downloaded -contains $filename) { continue }
 
             Write-Host "Downloading: $filename"
-            & $RclonePath copy "$DriveAudio/$filename" $DispatchDir
+            & $RclonePath copy "$DriveAudio/$filename" $PigeonDir
 
             # Pull companion transcript if it exists
             $mdFile = $filename -replace '\.m4a$', '.md'
-            & $RclonePath copy "$DriveTranscripts/$mdFile" $DispatchDir 2>$null
+            & $RclonePath copy "$DriveTranscripts/$mdFile" $PigeonDir 2>$null
 
             # Append to downloaded list (use explicit LF)
             [System.IO.File]::AppendAllText($DownloadedFile, "$filename`n")
@@ -97,7 +97,7 @@ if ($RclonePath) {
 $newCount = 0
 $processed = @(Get-Content $ProcessedFile -ErrorAction SilentlyContinue)
 
-$m4aFiles = Get-ChildItem -Path $DispatchDir -Filter "*.m4a" -ErrorAction SilentlyContinue
+$m4aFiles = Get-ChildItem -Path $PigeonDir -Filter "*.m4a" -ErrorAction SilentlyContinue
 
 foreach ($memo in $m4aFiles) {
     $filename = $memo.Name
@@ -105,7 +105,7 @@ foreach ($memo in $m4aFiles) {
     if ($processed -contains $filename) { continue }
 
     # Check for companion transcript
-    $mdPath = Join-Path $DispatchDir ($filename -replace '\.m4a$', '.md')
+    $mdPath = Join-Path $PigeonDir ($filename -replace '\.m4a$', '.md')
 
     if (Test-Path $mdPath) {
         Write-Host "Using transcript: $filename"
@@ -115,7 +115,7 @@ foreach ($memo in $m4aFiles) {
         continue
     }
 
-    # Parse date from filename: dispatch_YYYYMMDD_HHMMSS.m4a
+    # Parse date from filename: pigeon_YYYYMMDD_HHMMSS.m4a
     $dateMatch = [regex]::Match($filename, '(\d{8})_(\d{6})')
     if ($dateMatch.Success) {
         $d = $dateMatch.Groups[1].Value
@@ -126,7 +126,7 @@ foreach ($memo in $m4aFiles) {
     }
 
     # Append to voice.md (use explicit LF line endings)
-    $entry = "`n## Dispatch - $created`n`n$transcript`n"
+    $entry = "`n## Pigeon - $created`n`n$transcript`n"
     [System.IO.File]::AppendAllText($VoiceMd, $entry)
 
     # Mark as processed

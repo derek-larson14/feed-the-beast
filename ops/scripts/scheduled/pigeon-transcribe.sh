@@ -1,9 +1,9 @@
 #!/bin/bash
-# Dispatch Transcription
+# Pigeon Transcription
 # Pulls recordings from Google Drive, appends transcripts to voice.md
 # Uses on-device transcriptions (.md companion files) when available, falls back to hear
-# Runs on a schedule via launchd — set up by setup-dispatch.sh.
-# Config at ~/.dispatch/config (workspace path).
+# Runs on a schedule via launchd — set up by setup-pigeon.sh.
+# Config at ~/.pigeon/config (workspace path).
 
 # Time guard: only run 7am–midnight (skip overnight if scheduled 24/7)
 hour=$(date +%H)
@@ -11,15 +11,15 @@ if [ "$hour" -lt 7 ]; then
     exit 0
 fi
 
-CONFIG_FILE="$HOME/.dispatch/config"
-DISPATCH_DIR="$HOME/Sync/dispatch"
-DRIVE_AUDIO="gdrive:dispatch/audio"
-DRIVE_TRANSCRIPTS="gdrive:dispatch/transcripts"
+CONFIG_FILE="$HOME/.pigeon/config"
+PIGEON_DIR="$HOME/Sync/pigeon"
+DRIVE_AUDIO="gdrive:pigeon/audio"
+DRIVE_TRANSCRIPTS="gdrive:pigeon/transcripts"
 
 # Load workspace path
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: no config at $CONFIG_FILE"
-    echo "Run setup-dispatch.sh first"
+    echo "Run setup-pigeon.sh first"
     exit 1
 fi
 source "$CONFIG_FILE"
@@ -30,8 +30,8 @@ if [ -z "$WORKSPACE" ] || [ ! -d "$WORKSPACE" ]; then
 fi
 
 VOICE_DIR="$WORKSPACE/.voice"
-DOWNLOADED_FILE="$VOICE_DIR/dispatch-downloaded"
-PROCESSED_FILE="$VOICE_DIR/dispatch-processed"
+DOWNLOADED_FILE="$VOICE_DIR/pigeon-downloaded"
+PROCESSED_FILE="$VOICE_DIR/pigeon-processed"
 VOICE_MD="$WORKSPACE/voice.md"
 
 mkdir -p "$VOICE_DIR"
@@ -40,7 +40,7 @@ mkdir -p "$VOICE_DIR"
 HEAR_PATH=$(which hear 2>/dev/null || echo "$HOME/.local/bin/hear")
 RCLONE_PATH=$(which rclone 2>/dev/null || echo "$HOME/.local/bin/rclone")
 
-mkdir -p "$DISPATCH_DIR"
+mkdir -p "$PIGEON_DIR"
 touch "$DOWNLOADED_FILE"
 touch "$PROCESSED_FILE"
 
@@ -53,7 +53,7 @@ if [ -f "$RCLONE_PATH" ] && "$RCLONE_PATH" listremotes 2>/dev/null | grep -q "^g
         audio_file="${md_file%.md}.m4a"
         if ! grep -Fxq "$audio_file" "$DOWNLOADED_FILE" 2>/dev/null; then
             echo "Downloading transcript: $md_file"
-            "$RCLONE_PATH" copy "$DRIVE_TRANSCRIPTS/$md_file" "$DISPATCH_DIR/"
+            "$RCLONE_PATH" copy "$DRIVE_TRANSCRIPTS/$md_file" "$PIGEON_DIR/"
             echo "$audio_file" >> "$DOWNLOADED_FILE"
         fi
     done
@@ -74,7 +74,7 @@ if [ -f "$RCLONE_PATH" ] && "$RCLONE_PATH" listremotes 2>/dev/null | grep -q "^g
         fi
 
         echo "Downloading audio: $filename"
-        "$RCLONE_PATH" copy "$DRIVE_AUDIO/$filename" "$DISPATCH_DIR/"
+        "$RCLONE_PATH" copy "$DRIVE_AUDIO/$filename" "$PIGEON_DIR/"
         echo "$filename" >> "$DOWNLOADED_FILE"
     done
 
@@ -90,13 +90,14 @@ new_count=0
 while IFS= read -r -d '' md_file; do
     filename=$(basename "${md_file%.md}.m4a")
 
-    if grep -Fxq "$filename" "$PROCESSED_FILE"; then
+    date_id=$(echo "$filename" | grep -oE '[0-9]{8}_[0-9]{6}' || echo "")
+    if [ -n "$date_id" ] && grep -q "$date_id" "$PROCESSED_FILE" 2>/dev/null; then
         continue
     fi
 
     echo "Using on-device transcript: $filename"
-    # Strip dispatch-id comment and header from iOS app output
-    transcript=$(grep -v '<!-- dispatch-id:' "$md_file" | sed '/^## Dispatch -/d')
+    # Strip pigeon-id comment and header from iOS app output
+    transcript=$(grep -v '<!-- pigeon-id:' "$md_file" | sed '/^## Pigeon -/d')
 
     # Detect broken transcripts: repeated phrases indicate looping bug
     if echo "$transcript" | grep -qE '(.{20,})\1{2,}'; then
@@ -107,7 +108,7 @@ while IFS= read -r -d '' md_file; do
         continue
     fi
 
-    # Parse date from filename: dispatch_YYYYMMDD_HHMMSS.m4a
+    # Parse date from filename: pigeon_YYYYMMDD_HHMMSS.m4a
     date_part=$(echo "$filename" | grep -oE '[0-9]{8}_[0-9]{6}' || echo "")
     if [ -n "$date_part" ]; then
         created="${date_part:0:4}-${date_part:4:2}-${date_part:6:2} ${date_part:9:2}:${date_part:11:2}"
@@ -117,7 +118,7 @@ while IFS= read -r -d '' md_file; do
 
     {
         echo ""
-        echo "## Dispatch - $created"
+        echo "## Pigeon - $created"
         echo ""
         echo "$transcript"
         echo ""
@@ -125,18 +126,19 @@ while IFS= read -r -d '' md_file; do
 
     echo "$filename" >> "$PROCESSED_FILE"
     ((new_count++))
-done < <(find "$DISPATCH_DIR" -name "*.md" -print0 2>/dev/null)
+done < <(find "$PIGEON_DIR" -name "*.md" -print0 2>/dev/null)
 
 # Phase 2b: Process audio files without transcripts (fallback to hear)
 while IFS= read -r -d '' memo; do
     filename=$(basename "$memo")
 
-    if grep -Fxq "$filename" "$PROCESSED_FILE"; then
+    date_id=$(echo "$filename" | grep -oE '[0-9]{8}_[0-9]{6}' || echo "")
+    if [ -n "$date_id" ] && grep -q "$date_id" "$PROCESSED_FILE" 2>/dev/null; then
         continue
     fi
 
     # Check if transcript exists (would have been processed in Phase 2a)
-    md_file="$DISPATCH_DIR/${filename%.m4a}.md"
+    md_file="$PIGEON_DIR/${filename%.m4a}.md"
     if [ -f "$md_file" ]; then
         continue
     fi
@@ -150,7 +152,7 @@ while IFS= read -r -d '' memo; do
         continue
     fi
 
-    # Parse date from filename: dispatch_YYYYMMDD_HHMMSS.m4a
+    # Parse date from filename: pigeon_YYYYMMDD_HHMMSS.m4a
     date_part=$(echo "$filename" | grep -oE '[0-9]{8}_[0-9]{6}' || echo "")
     if [ -n "$date_part" ]; then
         created="${date_part:0:4}-${date_part:4:2}-${date_part:6:2} ${date_part:9:2}:${date_part:11:2}"
@@ -160,7 +162,7 @@ while IFS= read -r -d '' memo; do
 
     {
         echo ""
-        echo "## Dispatch - $created"
+        echo "## Pigeon - $created"
         echo ""
         echo "$transcript"
         echo ""
@@ -168,7 +170,7 @@ while IFS= read -r -d '' memo; do
 
     echo "$filename" >> "$PROCESSED_FILE"
     ((new_count++))
-done < <(find "$DISPATCH_DIR" -name "*.m4a" -print0 2>/dev/null)
+done < <(find "$PIGEON_DIR" -name "*.m4a" -print0 2>/dev/null)
 
 if [ $new_count -gt 0 ]; then
     echo "Processed $new_count new memo(s)"

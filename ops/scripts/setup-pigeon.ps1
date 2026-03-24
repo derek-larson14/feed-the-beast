@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-# Setup Dispatch Pipeline (Windows)
+# Setup Pigeon Pipeline (Windows)
 # Run from your workspace, or pass the workspace path as an argument.
 #
 # What it does:
@@ -8,11 +8,11 @@
 # 3. Downloads the transcription script
 # 4. Schedules transcription every hour via Task Scheduler
 #
-# After setup, recordings from Dispatch on your phone are
+# After setup, recordings from Pigeon on your phone are
 # automatically pulled and transcripts appended to voice.md.
 #
 # NOTE: Windows uses companion .md transcripts (from Apps Script or
-# Dispatch on-device transcription). No local 'hear' tool needed.
+# Pigeon on-device transcription). No local 'hear' tool needed.
 # Set up Apps Script transcription at delegatewithclaude.com/voice
 
 param(
@@ -21,12 +21,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$DispatchHome = Join-Path $env:USERPROFILE ".dispatch"
-$DispatchDir = Join-Path $env:USERPROFILE "Sync\dispatch"
-$TranscribeUrl = "https://raw.githubusercontent.com/derek-larson14/delegate/main/ops/scripts/scheduled/dispatch-transcribe.ps1"
-$TaskName = "DispatchTranscribe"
+$PigeonHome = Join-Path $env:USERPROFILE ".pigeon"
+$PigeonDir = Join-Path $env:USERPROFILE "Sync\pigeon"
+$TranscribeUrl = "https://raw.githubusercontent.com/derek-larson14/delegate/main/ops/scripts/scheduled/pigeon-transcribe.ps1"
+$TaskName = "PigeonTranscribe"
 
-Write-Host "=== Dispatch Pipeline Setup (Windows) ===" -ForegroundColor Cyan
+Write-Host "=== Pigeon Pipeline Setup (Windows) ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Detect workspace path
@@ -37,7 +37,7 @@ if ($WorkspacePath) {
 } else {
     Write-Host "[!] Run this from your workspace folder (the one with CLAUDE.md)." -ForegroundColor Red
     Write-Host "    cd C:\path\to\claude-workspace" -ForegroundColor Red
-    Write-Host "    .\ops\scripts\setup-dispatch.ps1" -ForegroundColor Red
+    Write-Host "    .\ops\scripts\setup-pigeon.ps1" -ForegroundColor Red
     exit 1
 }
 
@@ -50,8 +50,8 @@ if (-not (Test-Path (Join-Path $Workspace "CLAUDE.md"))) {
 Write-Host "[ok] Workspace: $Workspace"
 
 # Save config
-New-Item -ItemType Directory -Path $DispatchHome -Force | Out-Null
-[System.IO.File]::WriteAllText((Join-Path $DispatchHome "config"), "WORKSPACE=$Workspace`n")
+New-Item -ItemType Directory -Path $PigeonHome -Force | Out-Null
+[System.IO.File]::WriteAllText((Join-Path $PigeonHome "config"), "WORKSPACE=$Workspace`n")
 
 # Step 1: Find or install rclone
 $RclonePath = (Get-Command rclone -ErrorAction SilentlyContinue).Source
@@ -135,42 +135,42 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "[!] Could not list Drive contents - check with: $RclonePath config" -ForegroundColor Yellow
 }
 
-$dispatchTest = & $RclonePath lsd gdrive:dispatch 2>$null
+$pigeonTest = & $RclonePath lsd gdrive:pigeon 2>$null
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "[ok] dispatch/ folder found on Drive"
-    $audioTest = & $RclonePath lsd gdrive:dispatch/audio 2>$null
+    Write-Host "[ok] pigeon/ folder found on Drive"
+    $audioTest = & $RclonePath lsd gdrive:pigeon/audio 2>$null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[ok] dispatch/audio/ subfolder found"
+        Write-Host "[ok] pigeon/audio/ subfolder found"
     } else {
-        Write-Host "[*] dispatch/audio/ subfolder not found - it appears after your first recording"
+        Write-Host "[*] pigeon/audio/ subfolder not found - it appears after your first recording"
     }
-    $transcriptsTest = & $RclonePath lsd gdrive:dispatch/transcripts 2>$null
+    $transcriptsTest = & $RclonePath lsd gdrive:pigeon/transcripts 2>$null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[ok] dispatch/transcripts/ subfolder found"
+        Write-Host "[ok] pigeon/transcripts/ subfolder found"
     } else {
-        Write-Host "[*] dispatch/transcripts/ subfolder not found - it appears after your first transcription"
+        Write-Host "[*] pigeon/transcripts/ subfolder not found - it appears after your first transcription"
     }
 } else {
-    Write-Host "[*] dispatch/ folder not on Drive yet - it appears after your first recording"
+    Write-Host "[*] pigeon/ folder not on Drive yet - it appears after your first recording"
 }
 
 # Step 4: Create local directories
-New-Item -ItemType Directory -Path $DispatchDir -Force | Out-Null
-Write-Host "[ok] Local dispatch directory: $DispatchDir"
+New-Item -ItemType Directory -Path $PigeonDir -Force | Out-Null
+Write-Host "[ok] Local pigeon directory: $PigeonDir"
 
 # Step 5: Note about transcription
 Write-Host ""
 Write-Host "[!] Windows uses companion .md transcripts (no local 'hear' tool)." -ForegroundColor Yellow
 Write-Host "    Set up cloud transcription via one of these options:"
 Write-Host "    - Apps Script (Gemini): delegatewithclaude.com/voice"
-Write-Host "    - Dispatch app on-device transcription: dispatch.newyorkai.org"
+Write-Host "    - Pigeon app on-device transcription: pigeon.newyorkai.org"
 Write-Host "    Both produce companion .md files that the pipeline picks up automatically."
 
 # Step 6: Download transcription script
 Write-Host ""
 Write-Host "[*] Downloading transcription script..."
-Invoke-WebRequest -Uri $TranscribeUrl -OutFile (Join-Path $DispatchHome "dispatch-transcribe.ps1") -UseBasicParsing
-Write-Host "[ok] Saved to $DispatchHome\dispatch-transcribe.ps1"
+Invoke-WebRequest -Uri $TranscribeUrl -OutFile (Join-Path $PigeonHome "pigeon-transcribe.ps1") -UseBasicParsing
+Write-Host "[ok] Saved to $PigeonHome\pigeon-transcribe.ps1"
 
 # Step 7: Schedule via Task Scheduler
 Write-Host ""
@@ -182,7 +182,7 @@ if ($existing) {
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
 }
 
-$scriptPath = Join-Path $DispatchHome "dispatch-transcribe.ps1"
+$scriptPath = Join-Path $PigeonHome "pigeon-transcribe.ps1"
 $action = New-ScheduledTaskAction `
     -Execute "powershell.exe" `
     -Argument "-ExecutionPolicy Bypass -NoProfile -File `"$scriptPath`""
@@ -203,7 +203,7 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description "Dispatch voice memo transcription (runs hourly 8am-midnight)" | Out-Null
+    -Description "Pigeon voice memo transcription (runs hourly 8am-midnight)" | Out-Null
 
 Write-Host "[ok] Scheduled transcription every hour (8am-midnight)"
 
@@ -211,7 +211,7 @@ Write-Host ""
 Write-Host "=== Setup Complete ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "How it works:"
-Write-Host "  1. Record on your phone with Dispatch"
+Write-Host "  1. Record on your phone with Pigeon"
 Write-Host "  2. Recordings upload to Google Drive"
 Write-Host "  3. Apps Script transcribes them to companion .md files"
 Write-Host "  4. Every hour, your PC pulls transcripts to $Workspace\voice.md"

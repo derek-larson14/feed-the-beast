@@ -1,5 +1,5 @@
 /**
- * Dispatch Transcription — Google Apps Script
+ * Pigeon Transcription — Google Apps Script
  *
  * Watches a Google Drive folder for new .m4a recordings,
  * transcribes them with Gemini, and saves each transcript as a companion .md file.
@@ -35,8 +35,8 @@ const CONFIG = {
   // Get your free API key at https://aistudio.google.com
   GEMINI_API_KEY: 'YOUR_API_KEY_HERE',
 
-  // Folder name on Google Drive where Dispatch saves recordings
-  DRIVE_FOLDER: 'dispatch',
+  // Folder name on Google Drive where Pigeon saves recordings
+  DRIVE_FOLDER: 'pigeon',
 
   // Gemini model — auto-upgrades to latest flash
   MODEL: 'gemini-flash-latest',
@@ -173,7 +173,7 @@ function findFileId_(token, folderId, name) {
 
 function createFile_(token, folderId, name, content) {
   const metadata = JSON.stringify({ name: name, parents: [folderId], mimeType: 'text/plain' });
-  const boundary = 'dispatch_boundary';
+  const boundary = 'pigeon_boundary';
   const body = '--' + boundary + '\r\n'
     + 'Content-Type: application/json; charset=UTF-8\r\n\r\n'
     + metadata + '\r\n'
@@ -238,7 +238,7 @@ function transcribeWithGemini_(blob, mimeType) {
 
 /**
  * Save transcript as a companion .md file (same name as audio, .md extension).
- * Matches the format used by Dispatch's on-device transcription,
+ * Matches the format used by Pigeon's on-device transcription,
  * so the Mac-side script handles both sources the same way.
  */
 function saveTranscript_(token, folderId, filename, transcript) {

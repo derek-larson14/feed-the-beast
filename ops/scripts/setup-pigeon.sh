@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup Dispatch Pipeline
+# Setup Pigeon Pipeline
 # Run from your workspace, or pass the workspace path as an argument.
 # Works via curl: bash <(curl -sL URL) ~/path/to/workspace
 #
@@ -12,18 +12,18 @@
 # 3. Downloads the transcription script
 # 4. Schedules transcription every hour via launchd
 #
-# After setup, recordings from Dispatch on your phone are
+# After setup, recordings from Pigeon on your phone are
 # automatically transcribed and appended to voice.md.
 
 set -e
 
-DISPATCH_HOME="$HOME/.dispatch"
+PIGEON_HOME="$HOME/.pigeon"
 RCLONE_DIR="$HOME/.local/bin"
-DISPATCH_DIR="$HOME/Sync/dispatch"
+PIGEON_DIR="$HOME/Sync/pigeon"
 PLIST_DIR="$HOME/Library/LaunchAgents"
-PLIST_NAME="com.dispatch.transcribe"
-SETUP_URL="https://raw.githubusercontent.com/derek-larson14/delegate/main/ops/scripts/setup-dispatch.sh"
-TRANSCRIBE_URL="https://raw.githubusercontent.com/derek-larson14/delegate/main/ops/scripts/dispatch-transcribe.sh"
+PLIST_NAME="com.pigeon.transcribe"
+SETUP_URL="https://raw.githubusercontent.com/derek-larson14/delegate/main/ops/scripts/setup-pigeon.sh"
+TRANSCRIBE_URL="https://raw.githubusercontent.com/derek-larson14/delegate/main/ops/scripts/pigeon-transcribe.sh"
 
 # Parse flags
 ON_DEVICE=false
@@ -39,7 +39,7 @@ for arg in "$@"; do
     esac
 done
 
-echo "=== Dispatch Pipeline Setup ==="
+echo "=== Pigeon Pipeline Setup ==="
 echo ""
 
 # Detect workspace path
@@ -62,8 +62,8 @@ fi
 echo "[ok] Workspace: $WORKSPACE"
 
 # Save config
-mkdir -p "$DISPATCH_HOME"
-echo "WORKSPACE=$WORKSPACE" > "$DISPATCH_HOME/config"
+mkdir -p "$PIGEON_HOME"
+echo "WORKSPACE=$WORKSPACE" > "$PIGEON_HOME/config"
 
 # Step 1: Find or install rclone
 RCLONE_PATH=$(which rclone 2>/dev/null || true)
@@ -116,25 +116,25 @@ else
     echo "[!] Could not list Drive contents — check with: $RCLONE_PATH config"
 fi
 
-if "$RCLONE_PATH" lsd gdrive:dispatch 2>/dev/null; then
-    echo "[ok] dispatch/ folder found on Drive"
-    if "$RCLONE_PATH" lsd gdrive:dispatch/audio 2>/dev/null; then
-        echo "[ok] dispatch/audio/ subfolder found"
+if "$RCLONE_PATH" lsd gdrive:pigeon 2>/dev/null; then
+    echo "[ok] pigeon/ folder found on Drive"
+    if "$RCLONE_PATH" lsd gdrive:pigeon/audio 2>/dev/null; then
+        echo "[ok] pigeon/audio/ subfolder found"
     else
-        echo "[*] dispatch/audio/ subfolder not found — it appears after your first recording"
+        echo "[*] pigeon/audio/ subfolder not found — it appears after your first recording"
     fi
-    if "$RCLONE_PATH" lsd gdrive:dispatch/transcripts 2>/dev/null; then
-        echo "[ok] dispatch/transcripts/ subfolder found"
+    if "$RCLONE_PATH" lsd gdrive:pigeon/transcripts 2>/dev/null; then
+        echo "[ok] pigeon/transcripts/ subfolder found"
     else
-        echo "[*] dispatch/transcripts/ subfolder not found — it appears after your first transcription"
+        echo "[*] pigeon/transcripts/ subfolder not found — it appears after your first transcription"
     fi
 else
-    echo "[*] dispatch/ folder not on Drive yet — it appears after your first recording"
+    echo "[*] pigeon/ folder not on Drive yet — it appears after your first recording"
 fi
 
 # Step 4: Create local directories
-mkdir -p "$DISPATCH_DIR"
-echo "[ok] Local dispatch directory: $DISPATCH_DIR"
+mkdir -p "$PIGEON_DIR"
+echo "[ok] Local pigeon directory: $PIGEON_DIR"
 
 # Step 5: Check hear installation (auto-install with --on-device flag)
 HEAR_PATH=$(which hear 2>/dev/null || echo "$HOME/.local/bin/hear")
@@ -170,16 +170,16 @@ else
     echo ""
     echo "[!] hear (Apple speech recognition) not installed"
     echo "    Re-run with --on-device to auto-install:"
-    echo "    bash setup-dispatch.sh --on-device"
+    echo "    bash setup-pigeon.sh --on-device"
     echo "    Or run /setup-transcription in Claude Code"
 fi
 
 # Step 6: Download transcription script
 echo ""
 echo "[*] Downloading transcription script..."
-curl -sL "$TRANSCRIBE_URL" -o "$DISPATCH_HOME/dispatch-transcribe.sh"
-chmod +x "$DISPATCH_HOME/dispatch-transcribe.sh"
-echo "[ok] Saved to $DISPATCH_HOME/dispatch-transcribe.sh"
+curl -sL "$TRANSCRIBE_URL" -o "$PIGEON_HOME/pigeon-transcribe.sh"
+chmod +x "$PIGEON_HOME/pigeon-transcribe.sh"
+echo "[ok] Saved to $PIGEON_HOME/pigeon-transcribe.sh"
 
 # Step 7: Create and load launchd job
 PLIST_PATH="$PLIST_DIR/$PLIST_NAME.plist"
@@ -198,7 +198,7 @@ cat > "$PLIST_PATH" << PLIST
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>$DISPATCH_HOME/dispatch-transcribe.sh</string>
+        <string>$PIGEON_HOME/pigeon-transcribe.sh</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -223,9 +223,9 @@ cat > "$PLIST_PATH" << PLIST
         <dict><key>Hour</key><integer>0</integer><key>Minute</key><integer>0</integer></dict>
     </array>
     <key>StandardOutPath</key>
-    <string>$DISPATCH_HOME/transcribe.log</string>
+    <string>$PIGEON_HOME/transcribe.log</string>
     <key>StandardErrorPath</key>
-    <string>$DISPATCH_HOME/transcribe.log</string>
+    <string>$PIGEON_HOME/transcribe.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
@@ -244,7 +244,7 @@ echo ""
 echo "=== Setup Complete ==="
 echo ""
 echo "How it works:"
-echo "  1. Record on your phone with Dispatch"
+echo "  1. Record on your phone with Pigeon"
 echo "  2. Recordings upload to Google Drive"
 echo "  3. Every hour, your Mac pulls and transcribes them"
 echo "  4. Transcriptions appear in $WORKSPACE/voice.md"

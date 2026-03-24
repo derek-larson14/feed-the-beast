@@ -1,9 +1,9 @@
 /**
- * Dispatch Transcription — Google Apps Script (OpenRouter variant)
+ * Pigeon Transcription — Google Apps Script (OpenRouter variant)
  *
  * This is the OpenRouter version of the transcription script.
  * The primary/simpler version uses the Gemini API directly:
- *   dispatch-transcribe.js
+ *   pigeon-transcribe.js
  *
  * Use this variant if you want to avoid Google Cloud Billing
  * or want cheaper transcription via Gemini Flash Lite on OpenRouter.
@@ -38,8 +38,8 @@ const CONFIG = {
   // Get your API key at https://openrouter.ai/keys
   OPENROUTER_API_KEY: 'YOUR_API_KEY_HERE',
 
-  // Folder name on Google Drive where Dispatch saves recordings
-  DRIVE_FOLDER: 'dispatch',
+  // Folder name on Google Drive where Pigeon saves recordings
+  DRIVE_FOLDER: 'pigeon',
 
   // OpenRouter model — gemini-2.0-flash-lite is cheapest ($0.075/M audio tokens)
   MODEL: 'google/gemini-2.0-flash-lite',
@@ -175,7 +175,7 @@ function findFileId_(token, folderId, name) {
 
 function createFile_(token, folderId, name, content) {
   const metadata = JSON.stringify({ name: name, parents: [folderId], mimeType: 'text/plain' });
-  const boundary = 'dispatch_boundary';
+  const boundary = 'pigeon_boundary';
   const body = '--' + boundary + '\r\n'
     + 'Content-Type: application/json; charset=UTF-8\r\n\r\n'
     + metadata + '\r\n'
@@ -236,7 +236,7 @@ function transcribeWithOpenRouter_(blob, mimeType) {
     headers: {
       'Authorization': 'Bearer ' + CONFIG.OPENROUTER_API_KEY,
       'HTTP-Referer': 'https://script.google.com',
-      'X-Title': 'Dispatch Transcription'
+      'X-Title': 'Pigeon Transcription'
     },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
@@ -256,7 +256,7 @@ function transcribeWithOpenRouter_(blob, mimeType) {
 
 /**
  * Save transcript as a companion .md file (same name as audio, .md extension).
- * Matches the format used by Dispatch's on-device transcription,
+ * Matches the format used by Pigeon's on-device transcription,
  * so the Mac-side script handles both sources the same way.
  */
 function saveTranscript_(token, folderId, filename, transcript) {

@@ -42,7 +42,7 @@ Flagged entries go to `## Needs context` with `> SECURITY: [reason]`. Process on
 
 ### 3. Parse entries
 
-Entries may be separated by `## Vault -`, `## Memo -`, or `## Dispatch -` headers (from transcription scripts), `---` or `--` separators, or just dates/timestamps. Not all sources use headers — Apple Shortcuts and manual input may just have dates and text. Parse whatever format you find. A single entry often contains multiple distinct ideas — extract them all. Text is dictated — interpret intent, not literal words.
+Entries may be separated by `## Vault -`, `## Memo -`, or `## Pigeon -` headers (from transcription scripts), `---` or `--` separators, or just dates/timestamps. Not all sources use headers — Apple Shortcuts and manual input may just have dates and text. Parse whatever format you find. A single entry often contains multiple distinct ideas — extract them all. Text is dictated — interpret intent, not literal words.
 
 ### 4. Classify and route each idea
 
