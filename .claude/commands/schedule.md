@@ -1,14 +1,26 @@
 ---
-description: Set up a scheduled Claude session (launchd on Mac, Task Scheduler on Windows)
+description: Set up a scheduled Claude session (Co-Work, launchd on Mac, Task Scheduler on Windows)
 model: sonnet
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, RemoteTrigger
 ---
 
 # Schedule a Claude Command
 
-Set up a command to run automatically on a schedule. Creates a runner script and a system-level scheduled job.
+Set up a command to run automatically on a schedule. Works with Co-Work (cloud) and Claude Code (local).
 
-## Step 0: Detect OS
+## Step 0: Detect Environment
+
+Use AskUserQuestion:
+
+"Are you using **Claude Code** (terminal) or **Co-Work** (claude.ai web)?"
+
+Options:
+- "Claude Code (runs on my computer)"
+- "Co-Work (runs in the cloud)"
+
+If **Co-Work**, jump to the [Co-Work Setup](#co-work-setup) section below.
+
+If **Claude Code**, detect the OS:
 
 ```bash
 uname -s 2>/dev/null || echo "Windows"
@@ -47,7 +59,79 @@ Then ask for the specific time(s). Default suggestions:
 - Delegate: daily at 9am
 - Voice router: every 2 hours, 8am-10pm
 
-## Step 3: Check for Conflicts
+---
+
+## Co-Work Setup
+
+Co-Work runs in the cloud, so scheduling uses remote triggers instead of your computer's scheduler.
+
+### Step C1: Create the Trigger
+
+Convert the user's schedule to a cron expression:
+- Daily at 9am → `0 9 * * *`
+- Every 2 hours → `0 */2 * * *`
+- Weekdays at 8:30am → `30 8 * * 1-5`
+- Fridays at 4pm → `0 16 * * 5`
+
+Use the RemoteTrigger tool to create the scheduled agent:
+
+```
+RemoteTrigger({
+  action: "create",
+  body: {
+    "name": "TASKNAME",
+    "description": "Runs COMMAND on schedule",
+    "prompt": "COMMAND",
+    "cron_schedule": "CRON_EXPRESSION",
+    "max_turns": 25
+  }
+})
+```
+
+Replace TASKNAME with a short identifier (e.g., "morning-brief"), COMMAND with the slash command or prompt, and CRON_EXPRESSION with the cron schedule.
+
+### Step C2: Verify
+
+List triggers to confirm:
+
+```
+RemoteTrigger({ action: "list" })
+```
+
+Tell the user:
+- What was scheduled and when
+- How to check on it: "Run `/schedule` again and I can list your scheduled tasks"
+- How to remove it: "Run `/schedule` and tell me which one to delete"
+
+### Managing Co-Work Triggers
+
+**List all:**
+```
+RemoteTrigger({ action: "list" })
+```
+
+**Run one manually:**
+```
+RemoteTrigger({ action: "run", trigger_id: "TRIGGER_ID" })
+```
+
+**Update schedule:**
+```
+RemoteTrigger({ action: "update", trigger_id: "TRIGGER_ID", body: { "cron_schedule": "NEW_CRON" } })
+```
+
+**Delete:**
+Use the API to remove triggers that are no longer needed.
+
+After setup, tell the user: "Your scheduled task will run automatically in Co-Work. You don't need to keep your computer on."
+
+Jump to the [Common Schedules Reference](#common-schedules-reference) section.
+
+---
+
+## Claude Code Setup
+
+### Step 3: Check for Conflicts
 
 ```bash
 # macOS
@@ -61,14 +145,14 @@ powershell.exe -Command "Get-ScheduledTask | Where-Object {$_.TaskName -like 'Cl
 
 If the same command is already scheduled, tell the user and ask if they want to replace it.
 
-## Step 4: Create the Runner Script
+### Step 4: Create the Runner Script
 
 Find the claude path:
 ```bash
 which claude
 ```
 
-### macOS/Linux
+#### macOS/Linux
 
 Create `ops/scripts/scheduled/TASKNAME.sh`:
 
@@ -110,7 +194,7 @@ Make it executable:
 chmod +x ops/scripts/scheduled/TASKNAME.sh
 ```
 
-### Windows
+#### Windows
 
 Create `ops/scripts/scheduled/TASKNAME.ps1`:
 
@@ -129,9 +213,9 @@ if (!$proc.HasExited) {
 exit $proc.ExitCode
 ```
 
-## Step 5: Create the Scheduled Job
+### Step 5: Create the Scheduled Job
 
-### macOS — launchd plist
+#### macOS — launchd plist
 
 Write to `~/Library/LaunchAgents/com.claude.TASKNAME.plist`.
 
@@ -183,7 +267,7 @@ Load the job:
 launchctl load ~/Library/LaunchAgents/com.claude.TASKNAME.plist
 ```
 
-### Windows — Task Scheduler
+#### Windows — Task Scheduler
 
 ```bash
 powershell.exe -ExecutionPolicy Bypass -Command "
@@ -199,14 +283,14 @@ Register-ScheduledTask -TaskName 'ClaudeTASKNAME' -Action $action -Trigger $trig
 
 For repeating triggers (every N hours), use `-RepetitionInterval` and `-RepetitionDuration`.
 
-## Step 6: Verify
+### Step 6: Verify
 
-### macOS
+#### macOS
 ```bash
 launchctl list | grep com.claude.TASKNAME
 ```
 
-### Windows
+#### Windows
 ```bash
 powershell.exe -Command "Get-ScheduledTask -TaskName 'ClaudeTASKNAME'"
 ```
@@ -245,6 +329,8 @@ rm ops/scripts/scheduled/TASKNAME.sh
 powershell.exe -Command "Unregister-ScheduledTask -TaskName 'ClaudeTASKNAME' -Confirm:$false"
 rm ops/scripts/scheduled/TASKNAME.ps1
 ```
+
+---
 
 ## Common Schedules Reference
 
